@@ -6,7 +6,7 @@
 |---|---|---|
 | **Claude Code** (CLI albo IDE) | uruchamia skille | tak |
 | **`jq`** | hook w folderze klienta parsuje nim ścieżkę pliku | tak, jeśli chcesz hooka |
-| **Codex / GPT** (`codex exec`, plugin `codex:rescue`) | druga opinia w `/hejt` i wariant „buduje GPT" | nie — bez niego `/hejt` działa w trybie „ocena własna, nie niezależna" i jawnie to zaznacza |
+| **Plugin Codex** (`codex@openai-codex`) | niezależny recenzent w `/hejt` i wariant „buduje Codex" | nie — bez niego `/hejt` wykonuje obie fazy sam i jawnie oznacza wynik jako „ocena własna, nie niezależna" |
 | **`gh` albo `glab`** | tracker zadań na GitHubie/GitLabie | nie — alternatywą jest lokalny markdown w `.scratch/` |
 
 ## Instalacja
@@ -32,6 +32,27 @@ Sprawdzenie, czy widać:
 
 ```bash
 claude   # w folderze projektu, potem wpisz /workflow
+```
+
+## Plugin Codex (opcjonalny, ale zalecany)
+
+Drugi model jest jedynym miejscem w tym workflow, gdzie ocena nie pochodzi od autora
+ocenianego dokumentu. W Claude Code:
+
+```
+/plugin marketplace add openai/codex-plugin-cc
+/plugin install codex@openai-codex
+```
+
+Plugin daje skille `codex:rescue` (wywołanie z kontekstem bieżącej sesji) i `codex:setup`
+(sprawdzenie, czy lokalny Codex CLI jest gotowy). `/hejt` woła `codex:rescue`, a gdy go
+nie ma, spada do `codex exec` w Bashu.
+
+Wymaga zainstalowanego i zalogowanego [Codex CLI](https://github.com/openai/codex).
+Sprawdzenie:
+
+```bash
+codex --version
 ```
 
 ## Pierwsze uruchomienie na nowym kliencie
@@ -77,7 +98,7 @@ jeśli używasz innego, wystarczy podmienić ścieżki w tych trzech miejscach.
 
 [`skills/hejt/SKILL.md`](../skills/hejt/SKILL.md) i
 [`skills/workflow/references/budowa.md`](../skills/workflow/references/budowa.md)
-zakładają Codex/GPT jako niezależnego recenzenta. Można podmienić na dowolny inny model
+zakładają Codex jako niezależnego recenzenta. Można podmienić na dowolny inny model
 — warunek jest jeden i jest merytoryczny: **sędzia musi dostać świeży kontekst**, bez
 historii dyskusji, inaczej dziedziczy ramę autora i przestaje być niezależny.
 
@@ -111,7 +132,7 @@ język jest wymuszony jawnie, to `/to-spec` (sekcja „JĘZYK") i `/to-questionn
 | Objaw | Przyczyna | Co zrobić |
 |---|---|---|
 | Hook nic nie robi | brak `jq` albo `settings.json` nie w tym folderze, w którym startuje sesja | zainstaluj `jq`; sprawdź, że uruchamiasz Claude Code z folderu klienta |
-| `/hejt` nie woła GPT | brak Codexa albo zablokowany job | skill sam przejdzie w tryb oceny własnej i to zaznaczy; blokadę zdejmij przez `codex-companion.mjs cancel` |
+| `/hejt` nie woła Codexa | plugin niezainstalowany albo zablokowany job | skill sam przejdzie w tryb oceny własnej i to zaznaczy; blokadę zdejmij przez `codex-companion.mjs cancel` |
 | Skill nie widoczny | plik nie nazywa się `SKILL.md` albo brak frontmattera `name` | sprawdź nazwę pliku i nagłówek YAML |
 | Agent pomija bramki | pracuje poza `/workflow` | powiedz „działamy według workflow" — kręgosłup wymusza kolejność i meldowanie fazy |
 | Agent dopisuje do CLAUDE.md bez pytania | brak hooka w tym folderze | uruchom `/init-klienta` ponownie (nie nadpisze istniejącego CLAUDE.md, doda brakujące) |

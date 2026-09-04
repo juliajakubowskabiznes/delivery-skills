@@ -1,25 +1,40 @@
-# Delivery Skills — workflow wdrożeniowy dla agenta AI
+# Delivery Skills — workflow projektowy dla Claude Code
 
-Zestaw **18 skilli** dla Claude Code, które prowadzą projekt wdrożeniowy od pierwszej
-rozmowy z klientem aż po odbiór gotowego systemu. Skill to instrukcja, którą agent
-wczytuje i wykonuje krok po kroku — zamiast improwizować, robi za każdym razem to samo,
-w tej samej kolejności, z tymi samymi hamulcami.
+**18 skilli**, które zmieniają Claude Code z narzędzia „napisz mi kod" w agenta
+prowadzącego projekt od pierwszej rozmowy z klientem do odbioru gotowego systemu —
+z bramkami decyzyjnymi, niezależną recenzją drugiego modelu i twardymi hamulcami
+na zgadywanie.
 
-**Do czego to służy:** żeby wdrożenie nie rozjechało się na żadnym z pięciu klasycznych
-sposobów — źle zrozumiany proces klienta, plan pisany z głowy zamiast z danych, zakres
-którego nie da się odebrać, budowa bez testów, i cicha zmiana ustaleń w trakcie.
+**Stack:** Claude Code (skille + hooki + sub-agenty) · plugin
+[Codex](https://github.com/openai/codex-plugin-cc) jako niezależny recenzent ·
+issue tracker do wyboru (GitHub / GitLab / lokalny markdown).
 
 ---
 
+## Problem, który to rozwiązuje
+
+Agent kodujący jest szybki i chętny — i to jest problem. Postawiony przed projektem,
+w którym połowa informacji jeszcze nie istnieje, będzie:
+
+- **wypełniał luki hipotezami**, które w dokumencie wyglądają identycznie jak fakty,
+- **poprawiał zatwierdzone dokumenty** „bo tak będzie lepiej", unieważniając zgodę,
+  która za nimi stała,
+- **budował, zanim ktokolwiek ustalił**, po czym pozna się, że zbudowane jest dobrze,
+- **recenzował własną pracę** z tą samą ramą myślenia, w której ją napisał.
+
+To repo to zestaw ograniczeń, które temu zapobiegają — i przykład tego, jak projektować
+skille, żeby reguła przeżyła długą sesję zamiast utonąć w kontekście.
+
 ## Spis treści
 
-- [Dla kogo to jest](#dla-kogo-to-jest)
-- [Zrozum w 2 minuty (bez technikaliów)](#zrozum-w-2-minuty-bez-technikaliów)
-- [Szybki start](#szybki-start)
+- [Zrozum w 2 minuty](#zrozum-w-2-minuty)
+- [Mechanizmy — co tu jest ciekawego inżyniersko](#mechanizmy--co-tu-jest-ciekawego-inżyniersko)
 - [Workflow — 7 faz](#workflow--7-faz)
 - [Katalog skilli](#katalog-skilli)
-- [Struktura folderu klienta](#struktura-folderu-klienta)
-- [Dla technicznych](#dla-technicznych)
+- [Rola pluginu Codex](#rola-pluginu-codex)
+- [Wzorce projektowania skilli](#wzorce-projektowania-skilli)
+- [Szybki start](#szybki-start)
+- [Struktura folderów projektu](#struktura-folderów-projektu)
 - [Co dopasować pod siebie](#co-dopasować-pod-siebie)
 - [Pochodzenie i licencja](#pochodzenie-i-licencja)
 
@@ -31,99 +46,76 @@ Głębsze opisy: [`docs/`](docs/) — [workflow](docs/01-workflow.md) ·
 
 ---
 
-## Dla kogo to jest
+## Zrozum w 2 minuty
 
-Dla jednej osoby albo małego zespołu, który **sprzedaje i wdraża automatyzacje / systemy
-u klientów** — i pracuje przy tym z agentem AI (Claude Code). Sprawdza się tam, gdzie:
+Trzy zasady przewijają się przez wszystkie 18 skilli:
 
-- projekt jest sprzedawany etapami (klient płaci za krok, nie za całość z góry),
-- pomiędzy „klient chce" a „system działa" jest długa droga przez ustalenia,
-- ta sama osoba jest sprzedawcą, architektem i wykonawcą — i nie ma czasu pilnować
-  wszystkiego z głowy.
-
-Nazewnictwo w skillach: **„użytkownik"** = osoba prowadząca wdrożenie (Ty).
-**„klient"** = firma, dla której budujesz.
-
-## Zrozum w 2 minuty (bez technikaliów)
-
-Wyobraź sobie, że zatrudniasz bardzo szybkiego, ale nadgorliwego juniora. Zrobi wszystko,
-o co poprosisz — i jeszcze dziesięć rzeczy, o które nie prosiłeś. Wymyśli brakujące
-informacje, żeby nie przerywać pracy. Zmieni ustalony dokument, „bo tak będzie lepiej".
-
-Te skille to jego regulamin. Trzy zasady, które przewijają się przez wszystkie:
-
-1. **Bramki 🚧** — po każdej fazie agent zatrzymuje się i czeka na Twoją zgodę.
-   Nie idzie dalej sam.
-2. **Zero założeń** — jeśli czegoś nie wie, to jest to *pytanie* (do Ciebie albo do
-   klienta), nigdy cicho wpisana hipoteza. Brak informacji ma być widoczny.
+1. **Bramki 🚧** — po każdej fazie agent zatrzymuje się i czeka na decyzję człowieka.
+   Nie „przygotowuje już kolejnego kroku, skoro i tak trzeba będzie".
+2. **Zero założeń** — luka w wiedzy jest *pytaniem* (do człowieka albo do klienta),
+   nigdy cicho wpisaną hipotezą. Brak informacji ma być widoczny w dokumencie.
 3. **Bramka naniesień** — krytyka i research produkują *propozycje*, nie zmiany.
-   Zatwierdzony dokument zmienia się dopiero po Twoim wyborze z tabeli ZA/PRZECIW.
+   Zatwierdzony dokument zmienia się dopiero po wyborze z tabeli ZA/PRZECIW.
 
-Do tego jeden nawyk, który zmienia ekonomię projektu: **głęboko planujesz przed wyceną,
-płytko przed budową**. Przed ofertą sprawdzasz, czy to w ogóle wykonalne — najlepiej
-dowodem na prawdziwych danych klienta. Reszta szczegółów powstaje dopiero po podpisaniu
-umowy i wpłacie, bo to płatna część pracy.
+Plus jeden nawyk, który zmienia ekonomię projektu: **głęboko przed wyceną, płytko przed
+budową**. Przed ofertą sprawdzasz wykonalność — najlepiej dowodem na prawdziwych danych.
+Szczegóły wykonawcze powstają dopiero po podpisaniu umowy, bo to płatna część pracy.
 
-**Co realnie z tego masz:** klient dostaje zakres, który da się odebrać (kryteria odbioru
-są sprawdzalnym testem, nie „działa poprawnie"); Ty masz dokument, który broni Cię przy
-sporze; a agent nie dopisuje po cichu rzeczy, których nie ustaliliście.
+Domena, na której to powstało, to projekty wdrożeniowe u klientów (automatyzacje,
+integracje, systemy szyte na miarę) — ale mechanika jest domenowo obojętna. Każdy projekt,
+w którym trzeba **najpierw ustalić, potem wycenić, potem zbudować**, mieści się w tym
+samym szkielecie.
 
-## Szybki start
+## Mechanizmy — co tu jest ciekawego inżyniersko
 
-```bash
-# 1. Skopiuj skille do projektu (albo globalnie do ~/.claude/skills/)
-cp -R skills/* /ścieżka/do/projektu/.claude/skills/
-
-# 2. Odpal Claude Code w folderze projektu i zainicjuj klienta
-/init-klienta <ścieżka do folderu klienta>
-
-# 3. Uruchom cały proces
-/workflow
-```
-
-Od tego momentu mówisz do agenta **normalnym językiem** — „przeanalizuj materiały",
-„zrób plan pod wycenę", „skrytykuj to", „potnij na zadania". Nazwy skilli są po stronie
-agenta; on sam routuje. Szczegóły instalacji: [`docs/05-instalacja-i-konfiguracja.md`](docs/05-instalacja-i-konfiguracja.md).
+| Mechanizm | Gdzie | Po co |
+|---|---|---|
+| **Fork kontekstu** (`context: fork`) | [`/analiza`](skills/analiza/SKILL.md) | agent czyta materiały **bez historii rozmowy**, więc nie dziedziczy tego, w co bieżąca sesja zdążyła uwierzyć — ocenia to, co realnie jest na dysku |
+| **Recenzent bez wspólnej ramy** | [`/hejt`](skills/hejt/SKILL.md) | dyskusja Claude↔Codex, a potem **świeże wywołanie sędziego bez historii dyskusji** — sędzia, który przeczytał całą debatę, dziedziczy ramę autora i przestaje być niezależny |
+| **Hook jako twarda pamięć** | [`/init-klienta`](skills/init-klienta/SKILL.md) | `PostToolUse` na `Write\|Edit` wychodzi z kodem 2 przy zapisie do spec/PRD/CLAUDE.md. Instrukcja w prompcie tonie po godzinie sesji — hook odpala się mechanicznie, niezależnie od tego, co sesja pamięta |
+| **Sub-agenty równoległe** | [`/code-review`](skills/code-review/SKILL.md), research, `design-it-twice` | dwie osie przeglądu w osobnych kontekstach, żeby się nie zanieczyszczały; jeden agent na pytanie badawcze; 3+ wariantów interfejsu naraz |
+| **Rozdzielenie warstw dokumentu** | [`references/plan.md`](skills/workflow/references/plan.md) | test na każdy fragment: „czy obowiązuje też przy innym projekcie?" → jeśli tak, to nie należy do tego dokumentu (reguła→skill, fakt→CONTEXT.md, decyzja→ADR) |
+| **Tracker jako abstrakcja** | [`/setup-matt-pocock-skills`](skills/setup-matt-pocock-skills/SKILL.md) | skille czytają `docs/agents/issue-tracker.md`, zamiast zakładać platformę — ta sama instrukcja działa na GitHubie, GitLabie i plikach markdown |
+| **EARS jako kontrakt testowy** | [`/to-spec`](skills/to-spec/SKILL.md) | kryteria pisane wzorcami (`GDY <zdarzenie>, system MUSI X`) konwertują się 1:1 na testy. Twarda reguła: każdy krok czytający dane przez AI musi mieć kryterium „co, gdy odczyt zawiedzie" |
+| **Progresywne ładowanie reguł** | [`skills/workflow/`](skills/workflow/) | krótki kręgosłup w `SKILL.md`, szczegóły w `references/` doczytywane przy wejściu w fazę — gruby regulamin wypadłby z kontekstu dokładnie wtedy, kiedy jest potrzebny |
 
 ## Workflow — 7 faz
 
-Jedna ścieżka, stała kolejność, bramka po każdej fazie. Agent na każdym kroku melduje,
-gdzie jesteście: `[WORKFLOW faza N/7 — NAZWA]`.
+Stała kolejność, bramka po każdej fazie. Agent melduje pozycję: `[WORKFLOW faza N/7 — NAZWA]`.
 
 | # | Faza | Co się dzieje | Efekt | Bramka |
 |---|---|---|---|---|
-| 0 | **Setup** | raz na klienta: CLAUDE.md klienta + tracker zadań | pamięć projektu | — |
-| 1 | **Poznaj** | agent czyta wszystkie materiały, potem przesłuchuje Ciebie; czego nie wiecie oboje → ankieta do klienta | raport + decyzje + pytania do klienta | 🚧 potwierdzasz zrozumienie |
-| 2 | **Zaplanuj pod wycenę** | plan całości: ryzyko, wykonalność (dowodem), podział na **kroki wdrożenia**, które da się osobno sprzedać i odebrać | plan / spec całości | 🚧 zatwierdzasz plan |
-| 3 | **Skrytykuj** | dokument idzie na dyskusję dwóch modeli, potem świeży „sędzia" rozstrzyga spory i robi własny research | tabela propozycji + werdykt | 🚧 wybierasz, co wprowadzić |
-| 4 | **Umowa** | oferta → po „tak": umowa + załącznik z zakresem językiem klienta | podpis + płatność z góry | 🚧 akceptujesz przed wysyłką |
-| 5 | **Domknij i potnij** | *dopiero po wpłacie*: PRD kroku, cięcie na zadania z zależnościami, testy pisane **przed** budową | PRD + tickety + testy | 🚧 zatwierdzasz tickety |
-| 6 | **Buduj** | realizacja na ticketach, aż testy świecą na zielono, potem upraszczanie | działający krok | — |
-| 7 | **Sprawdź** | przegląd na dwóch osiach: standardy kodu i zgodność ze specyfikacją | raport | — |
+| 0 | **Setup** | raz na projekt: CLAUDE.md projektu + tracker zadań | pamięć projektu | — |
+| 1 | **Poznaj** | fork czyta wszystkie materiały, potem przesłuchanie człowieka; czego nie wie nikt po naszej stronie → ankieta do klienta | raport + decyzje + pytania | 🚧 potwierdzenie zrozumienia |
+| 2 | **Zaplanuj pod wycenę** | ryzyko, wykonalność **dowiedziona na realnych danych**, podział na kroki, które da się osobno sprzedać i odebrać | plan całości | 🚧 zatwierdzenie planu |
+| 3 | **Skrytykuj** | dyskusja dwóch modeli → świeży sędzia rozstrzyga spory i robi własny research | tabela propozycji + werdykt | 🚧 wybór zmian |
+| 4 | **Umowa** | zakres językiem klienta, kryteria odbioru = sprawdzalny test | podpis + płatność z góry | 🚧 akceptacja przed wysyłką |
+| 5 | **Domknij i potnij** | *dopiero po wpłacie*: PRD, cięcie na zadania z zależnościami, **testy przed budową** | PRD + tickety + testy | 🚧 zatwierdzenie ticketów |
+| 6 | **Buduj** | realizacja na ticketach, aż testy zielone, potem upraszczanie | działający krok | — |
+| 7 | **Sprawdź** | przegląd na dwóch osiach równolegle: standardy i zgodność ze specem | raport | — |
 
-Po odbiorze spec i załącznik idą do archiwum jako **zamrożony zapis ustaleń** — nie
-aktualizujesz ich, gdy system się zmienia. Zmiana = nowy krok = nowa umowa.
+Po odbiorze spec idzie do archiwum jako **zamrożony zapis ustaleń** — nie aktualizuje się
+go, gdy system się zmienia. Zmiana = nowy krok.
 
-**Test wagi:** drobiazg bez nowych decyzji architektonicznych omija całą ścieżkę — od
-razu budowa, test i przegląd. Wielki spec do 20-minutowej roboty to strata, nie staranność.
+**Test wagi:** drobiazg bez nowych decyzji architektonicznych omija całą ścieżkę — od razu
+budowa, test, przegląd. Wielki spec do 20-minutowej roboty to strata, nie staranność.
 
-Pełny opis każdej fazy — co dokładnie powstaje, jakie są pułapki i dlaczego kolejność
-jest właśnie taka: [`docs/01-workflow.md`](docs/01-workflow.md).
+Pełny opis faz, z uzasadnieniem każdej reguły: [`docs/01-workflow.md`](docs/01-workflow.md).
 
 ## Katalog skilli
 
-**Skille wdrożeniowe** (napisane pod ten proces, po polsku) —
+**Skille procesowe** (napisane pod ten workflow, po polsku) —
 szczegóły: [`docs/02-skille-wdrozeniowe.md`](docs/02-skille-wdrozeniowe.md)
 
 | Skill | Faza | Co robi |
 |---|---|---|
 | [`/workflow`](skills/workflow/SKILL.md) | cały proces | kręgosłup: kolejność faz, bramki, routing do pozostałych skilli |
-| [`/init-klienta`](skills/init-klienta/SKILL.md) | 0 | zakłada CLAUDE.md klienta (pamięć projektu) + hook pilnujący bramek |
-| [`/analiza`](skills/analiza/SKILL.md) | 1 | czyta cały folder klienta na świeżym kontekście → raport: co wiemy, sprzeczności, luki |
-| [`/to-questionnaire`](skills/to-questionnaire/SKILL.md) | 1, 5 | zamienia „tego nie wiemy" w jedną ankietę do klienta (async, bez spotkania) |
-| [`/hejt`](skills/hejt/SKILL.md) | 3 | krytyka dokumentu: dyskusja GPT↔Claude → świeży sędzia → tabela propozycji |
-| [`/zalacznik`](skills/zalacznik/SKILL.md) | 4 | zakres do umowy w 7 sekcjach, językiem klienta, z kryteriami odbioru |
-| [`/to-spec`](skills/to-spec/SKILL.md) | 2, 5 | zamienia rozmowę w PRD z kryteriami w formacie EARS (każde = 1 test) |
+| [`/init-klienta`](skills/init-klienta/SKILL.md) | 0 | zakłada CLAUDE.md projektu (pamięć) + hook pilnujący bramek |
+| [`/analiza`](skills/analiza/SKILL.md) | 1 | fork czyta cały folder projektu → raport: co wiemy, sprzeczności, luki |
+| [`/to-questionnaire`](skills/to-questionnaire/SKILL.md) | 1, 5 | zamienia „tego nie wiemy" w jedną ankietę async, bez spotkania |
+| [`/hejt`](skills/hejt/SKILL.md) | 3 | krytyka: dyskusja Claude↔Codex → świeży sędzia → tabela propozycji |
+| [`/zalacznik`](skills/zalacznik/SKILL.md) | 4 | zakres do umowy, językiem klienta, z kryteriami odbioru, które da się sprawdzić |
+| [`/to-spec`](skills/to-spec/SKILL.md) | 2, 5 | zamienia rozmowę w PRD z kryteriami EARS (każde = 1 test) |
 | [`/to-tickets`](skills/to-tickets/SKILL.md) | 5 | tnie PRD na zadania „tracer bullet" z jawnymi zależnościami |
 
 **Skille inżynierskie** (baza open-source, po angielsku) —
@@ -131,102 +123,131 @@ szczegóły: [`docs/03-skille-inzynierskie.md`](docs/03-skille-inzynierskie.md)
 
 | Skill | Do czego |
 |---|---|
-| [`/wayfinder`](skills/wayfinder/SKILL.md) | mapa dużego przedsięwzięcia jako tickety decyzyjne — jeden na sesję |
-| [`/grilling`](skills/grilling/SKILL.md) | przesłuchanie: jedno pytanie na raz, z rekomendowaną odpowiedzią |
-| [`/grill-with-docs`](skills/grill-with-docs/SKILL.md) | to samo + zapis słownika pojęć i decyzji (ADR) w locie |
-| [`/domain-modeling`](skills/domain-modeling/SKILL.md) | budowanie języka projektu (CONTEXT.md) i decyzji architektonicznych (ADR) |
-| [`/codebase-design`](skills/codebase-design/SKILL.md) | słownik projektowania „głębokich modułów" — moduł, interfejs, szew, dźwignia |
-| [`/improve-codebase-architecture`](skills/improve-codebase-architecture/SKILL.md) | skan kodu pod kątem refaktorów + raport HTML z diagramami |
-| [`/tdd`](skills/tdd/SKILL.md) | red-green-refactor: co jest dobrym testem, gdzie testować, czego nie mockować |
-| [`/implement`](skills/implement/SKILL.md) | budowa na podstawie specu/ticketów |
-| [`/code-review`](skills/code-review/SKILL.md) | przegląd diffa na dwóch osiach równolegle: standardy i zgodność ze specem |
-| [`/setup-matt-pocock-skills`](skills/setup-matt-pocock-skills/SKILL.md) | konfiguracja repo pod te skille: tracker, etykiety, dokumenty domenowe |
+| [`/wayfinder`](skills/wayfinder/SKILL.md) | mapa dużego przedsięwzięcia jako tickety decyzyjne — jedna sesja, jeden ticket |
+| [`/grilling`](skills/grilling/SKILL.md) | przesłuchanie: jedno pytanie na raz, zawsze z rekomendowaną odpowiedzią |
+| [`/grill-with-docs`](skills/grill-with-docs/SKILL.md) | to samo + zapis słownika i decyzji (ADR) w locie |
+| [`/domain-modeling`](skills/domain-modeling/SKILL.md) | budowanie języka projektu (CONTEXT.md) i decyzji architektonicznych |
+| [`/codebase-design`](skills/codebase-design/SKILL.md) | słownik głębokich modułów: moduł, interfejs, szew, adapter, dźwignia |
+| [`/improve-codebase-architecture`](skills/improve-codebase-architecture/SKILL.md) | skan kodu pod refaktory + raport HTML z diagramami przed/po |
+| [`/tdd`](skills/tdd/SKILL.md) | red-green-refactor: szwy, antywzorce, kiedy wolno mockować |
+| [`/implement`](skills/implement/SKILL.md) | budowa na podstawie specu lub ticketów |
+| [`/code-review`](skills/code-review/SKILL.md) | przegląd diffa na dwóch osiach równolegle, bez scalania wyników |
+| [`/setup-matt-pocock-skills`](skills/setup-matt-pocock-skills/SKILL.md) | konfiguracja repo: tracker, etykiety triage, dokumenty domenowe |
 
-## Struktura folderu klienta
+## Rola pluginu Codex
 
-Skille zakładają, że każdy klient ma własny folder, a w nim **porządek pilnowany
-mechanicznie**, nie z pamięci. Trzy zasady w skrócie:
+Drugi model nie jest tu ozdobą — jest **jedynym miejscem, w którym ocena nie pochodzi
+od autora ocenianego tekstu**. Claude pisze plan i PRD, więc jego recenzja tych
+dokumentów jest recenzją własną.
 
-1. **Numerowane podfoldery, zero luźnych plików.** Każdy podfolder ma prefiks
-   (`00_`, `01_`, `02_`…) wymuszający kolejność. Plik nie ląduje „na razie tutaj" —
-   albo pasuje do istniejącego podfolderu, albo powstaje nowy, ponumerowany.
-2. **Jedno archiwum na klienta.** Dokument nieaktualny (zastąpiony, przeterminowany,
-   sprzeczny z decyzjami) idzie do `99_archiwum/` **od razu, w tej samej sesji** —
-   z dopiskiem `_STARY` w nazwie. Nic nie kasujemy; foldery robocze pokazują
-   wyłącznie aktualny stan.
-3. **Jedno miejsce na linki.** Wszystkie adresy zewnętrzne (arkusze, dokumenty umowy,
-   instancje narzędzi, nagrania) żyją w jednej tabeli w CLAUDE.md klienta. Inne pliki
-   *odsyłają* do niej, nigdy nie kopiują URL-a.
+[`/hejt`](skills/hejt/SKILL.md) używa Codexa dwa razy, w dwóch różnych rolach:
 
-Pełny wzorzec — jak wygląda folder faza po fazie, gdzie ląduje który artefakt, jak
-działa hook pilnujący poziomu dokumentu i dlaczego wiadomości do klienta zapisujemy
-jako `.txt`: [`docs/04-struktura-folderow.md`](docs/04-struktura-folderow.md).
+1. **Oponent** (faza dyskusji, max 3 rundy) — zgłasza konkretne zarzuty: luka, ryzyko,
+   przerost, nieaktualne narzędzie. Claude jako autor albo przyznaje rację (→ propozycja
+   zmiany), albo broni jednym zdaniem (→ punkt sporny).
+2. **Sędzia** (nowe wywołanie, **bez historii dyskusji**) — dostaje wyłącznie dokument,
+   listy propozycji i sporów, kontekst projektu i **źródła pierwotne = głos klienta**
+   (jego transkrypcje i wiadomości; nasze drafty źródłem nie są). Rozstrzyga każdy punkt,
+   sprawdza zgodność planu z tym, co klient faktycznie powiedział — z cytatem — i robi
+   własny research aktualnych praktyk z linkami.
 
-## Dla technicznych
+Codex czyta pliki sam, w sandboksie read-only, więc dostaje ścieżki zamiast wklejek.
+Wariantowo przejmuje też budowę ([`references/budowa.md`](skills/workflow/references/budowa.md)):
+`codex exec -s workspace-write`, przy czym nie dotyka `.env`, `CLAUDE.md` ani plików
+z sekretami, a Claude przechodzi wtedy do recenzji diffa.
 
-**Czym jest skill.** Folder z plikiem `SKILL.md`: frontmatter YAML (`name`,
-`description`, opcjonalnie `context`, `background`, `disable-model-invocation`) plus
-treść w Markdownie — instrukcja wykonawcza dla modelu. Pliki obok (`references/*.md`,
-`CONTEXT-FORMAT.md`, `HTML-REPORT.md`) są doczytywane dopiero wtedy, gdy skill ich
-potrzebuje. To celowe: krótki kręgosłup przeżyje długą sesję, gruby regulamin utonąłby
-w kontekście.
+**Instalacja:**
 
-**Mechanizmy, na których to stoi:**
+```
+/plugin marketplace add openai/codex-plugin-cc
+/plugin install codex@openai-codex
+```
 
-- **Fork kontekstu** — `/analiza` ma `context: fork`: czyta materiały bez historii
-  rozmowy, więc nie dziedziczy naszych wcześniejszych założeń. Ocenia to, co jest na
-  dysku, a nie to, w co już uwierzyliśmy.
-- **Drugi model jako recenzent** — `/hejt` woła GPT przez `codex:rescue` (fallback:
-  `codex exec`). Faza sędziego to **świeże wywołanie bez historii dyskusji**, żeby
-  recenzent nie odziedziczył ramy autora. Ciężkie wywołania zawsze w `--background` —
-  zadanie na kilka minut nie mieści się w timeoucie Bash, a zabity proces zostawia
-  blokadę.
-- **Sub-agenty równoległe** — research (jeden agent na pytanie badawcze, min. 2 źródła
-  z linkami), `/code-review` (dwie osie w osobnych kontekstach, żeby się nie zanieczyszczały),
-  `design-it-twice` (3+ warianty interfejsu naraz).
-- **Hook jako twarda pamięć** — `.claude/settings.json` w folderze klienta, `PostToolUse`
-  na `Write|Edit`: wychodzi z kodem 2 przy zapisie do spec/plan/PRD i CLAUDE.md,
-  przypominając o bramce. Działa niezależnie od tego, co sesja pamięta.
-- **Issue tracker jest wymienny** — GitHub, GitLab albo lokalny markdown w `.scratch/`.
-  Konfiguruje go `/setup-matt-pocock-skills`, zapisując do `docs/agents/issue-tracker.md`;
-  pozostałe skille czytają ten plik zamiast zakładać platformę.
-- **EARS** — kryteria akceptacji pisane wzorcami (`GDY <zdarzenie>, system MUSI X`;
-  `JEŚLI <błąd>, TO system MUSI X`), bo każde takie zdanie konwertuje się 1:1 na test.
-  Twarda reguła: każdy krok czytający dane przez AI musi mieć kryterium typu „co, gdy
-  odczyt zawiedzie" — cicha błędna odpowiedź to najgorsza klasa awarii.
+Bez pluginu skille działają dalej — `/hejt` wykonuje obie fazy sam i **jawnie oznacza
+wynik jako „ocena własna, nie niezależna"**, zamiast udawać niezależność.
 
-**Zasada eskalacji złożoności** (obowiązuje w każdej decyzji technicznej):
-stała reguła → deterministyczny workflow → krok z AI → agent AI. Sięgnięcie po wyższy
-poziom wymaga jednego zdania uzasadnienia, dlaczego niższy nie wystarcza.
+**Operacyjnie:** ciężkie wywołania idą w `--background`. Zadanie na kilka minut myślenia
+nie mieści się w timeoucie Bash, a zabity proces zostawia blokadę „task still running",
+której plugin nie sprząta (zdejmuje ją `codex-companion.mjs cancel`).
+
+## Wzorce projektowania skilli
+
+Rzeczy, które okazały się ważniejsze od treści samych instrukcji:
+
+- **Krótki kręgosłup, szczegóły w referencjach.** `SKILL.md` trzyma kolejność i bramki;
+  reguły fazy leżą w `references/*.md` i są doczytywane przy wejściu w fazę. Regulamin
+  wpakowany do jednego pliku wypada z kontekstu w długiej sesji.
+- **Reguła, która musi zadziałać, nie może być zdaniem w prompcie.** Stąd hook: mechaniczny,
+  odpalany przy każdym zapisie, obojętny na to, ile sesja pamięta.
+- **Świeży kontekst jako narzędzie.** Fork do czytania materiałów, świeże wywołanie do
+  sądzenia, osobne sub-agenty do dwóch osi przeglądu. Za każdym razem chodzi o to samo:
+  nie dziedziczyć ramy, którą się właśnie ocenia.
+- **Bramka zamiast zaufania.** Model nie zna granicy między „poprawiłem drobiazg"
+  a „zmieniłem ustalenie". Granicę rysuje proces: zatwierdzony dokument zmienia się
+  wyłącznie przez tabelę ZA/PRZECIW i wybór człowieka.
+- **Widoczna niewiedza.** Sekcja „Nierozstrzygnięte pytania" z właścicielem przy każdym
+  pytaniu; `[DO POTWIERDZENIA → pyt. N]` w treści; „brak" wpisywane jawnie, bo pusta
+  sekcja to twierdzenie, nie przeoczenie.
+- **Instrukcja mówi, czego NIE robić, i podaje powód.** Reguła bez uzasadnienia jest
+  pierwszą, którą model zracjonalizuje — więc każda ma przy sobie zdanie „bo inaczej…".
+
+## Szybki start
+
+```bash
+# 1. Skille do projektu (albo globalnie: ~/.claude/skills/)
+cp -R skills/* /ścieżka/do/projektu/.claude/skills/
+
+# 2. Opcjonalnie: niezależny recenzent
+#    /plugin marketplace add openai/codex-plugin-cc
+#    /plugin install codex@openai-codex
+
+# 3. W Claude Code, w folderze projektu:
+#    /init-klienta <ścieżka do folderu projektu>
+#    /workflow
+```
+
+Dalej mówisz do agenta normalnym językiem — „przeanalizuj materiały", „zrób plan pod
+wycenę", „skrytykuj to", „potnij na zadania". Nazwy skilli są po stronie agenta.
+Szczegóły: [`docs/05-instalacja-i-konfiguracja.md`](docs/05-instalacja-i-konfiguracja.md).
+
+## Struktura folderów projektu
+
+Skille zakładają porządek pilnowany mechanicznie, nie z pamięci:
+
+1. **Numerowane podfoldery, zero luźnych plików.** Prefiks (`00_`, `01_`…) wymusza
+   kolejność; po usunięciu czegoś numeracja jest przenumerowywana, żeby nie było dziur.
+2. **Jedno archiwum.** Dokument nieaktualny idzie do `99_archiwum/` **od razu, w tej samej
+   sesji**, z dopiskiem `_STARY`. Foldery robocze pokazują wyłącznie aktualny stan — inaczej
+   każda kolejna sesja zaczyna się od śledztwa, która wersja obowiązuje.
+3. **Jedno miejsce na linki.** Wszystkie adresy zewnętrzne w jednej tabeli w CLAUDE.md
+   projektu; inne pliki *odsyłają*, nigdy nie kopiują URL-a.
+
+Pełny wzorzec, z anatomią folderu faza po fazie: [`docs/04-struktura-folderow.md`](docs/04-struktura-folderow.md).
 
 ## Co dopasować pod siebie
 
-Skille są napisane uniwersalnie, ale kilka rzeczy zależy od Twojego setupu:
-
 | Miejsce | Co zmienić |
 |---|---|
-| `skills/analiza`, `skills/to-spec`, `skills/to-questionnaire` | ścieżki folderu planowania (`<folder klienta>/<wdrożenie>/03_planowanie/`) na własne |
-| `skills/hejt`, `skills/workflow/references/budowa.md` | drugi model — domyślnie Codex/GPT; bez niego skille działają w trybie „ocena własna" |
+| `skills/analiza`, `skills/to-spec`, `skills/to-questionnaire` | ścieżki zapisu (`<folder projektu>/<etap>/03_planowanie/`) |
+| `skills/hejt`, `skills/workflow/references/budowa.md` | drugi model — domyślnie Codex; warunek merytoryczny: sędzia dostaje świeży kontekst |
 | `skills/zalacznik` | miejsce docelowe umowy (domyślnie dokument w chmurze, nie repo) |
-| `skills/init-klienta` | szablon CLAUDE.md klienta i sekcje, które chcesz wymuszać |
-| `skills/setup-matt-pocock-skills` | wybór trackera i etykiet triage |
+| `skills/init-klienta` | szablon CLAUDE.md i treść hooka |
+| `skills/setup-matt-pocock-skills` | tracker i etykiety triage |
 
-Język: skille wdrożeniowe są po polsku (dokumenty idą do polskich klientów), inżynierskie
-po angielsku. Można to ujednolicić — treść instrukcji nie zależy od języka dokumentów,
-które produkują.
+Skille procesowe są po polsku (produkują dokumenty dla polskich klientów), inżynierskie
+po angielsku. Instrukcja dla modelu nie musi być w języku dokumentu, który powstaje —
+można ujednolicić w obie strony.
 
 ## Pochodzenie i licencja
 
-Część skilli inżynierskich pochodzi z open-source'owego zestawu
-[mattpocock/skills](https://github.com/mattpocock/skills) (MIT) — `wayfinder`,
-`grilling`, `grill-with-docs`, `to-spec`, `to-tickets`, `to-questionnaire`, `tdd`,
-`implement`, `code-review`, `codebase-design`, `domain-modeling`,
-`improve-codebase-architecture`, `setup-matt-pocock-skills`. Zostały tu zmodyfikowane —
-głównie `to-spec`, `to-tickets` i `to-questionnaire`, które dostały polskie sekcje,
-zasadę zera założeń i routing pytań do klienta.
+Skille inżynierskie pochodzą z open-source'owego zestawu
+[mattpocock/skills](https://github.com/mattpocock/skills) (MIT) — `wayfinder`, `grilling`,
+`grill-with-docs`, `to-spec`, `to-tickets`, `to-questionnaire`, `tdd`, `implement`,
+`code-review`, `codebase-design`, `domain-modeling`, `improve-codebase-architecture`,
+`setup-matt-pocock-skills`. Zmodyfikowane zostały głównie `to-spec`, `to-tickets`
+i `to-questionnaire`: doszły polskie sekcje, zasada zera założeń, routing pytań do klienta
+i drabinka cel → metryka → kryterium odbioru.
 
-Skille `workflow`, `init-klienta`, `analiza`, `hejt` i `zalacznik` powstały na potrzeby
-tego procesu.
+Skille `workflow`, `init-klienta`, `analiza`, `hejt` i `zalacznik` powstały pod ten proces.
 
-Licencja: MIT (patrz [`LICENSE`](LICENSE)) — uzupełnij pole właściciela praw przed
-ewentualną publikacją.
+Licencja: MIT (patrz [`LICENSE`](LICENSE)).

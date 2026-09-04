@@ -27,7 +27,7 @@ w fazę:
 | `research.md` | metoda researchu (równoległe sub-agenty, 2 źródła), bramka naniesień |
 | `wiarygodnosc.md` | hierarchia źródeł — co jest faktem, a co hipotezą |
 | `tryb-pracy.md` | jak rozmawiać: jeden wątek do decyzji, parking wątków, zero spotkań operacyjnych |
-| `budowa.md` | warianty budowy (Claude / GPT), zasady bezpieczeństwa |
+| `budowa.md` | warianty budowy (Claude / Codex), zasady bezpieczeństwa |
 
 Ten podział to nie estetyka: krótki plik główny przeżyje długą sesję, a gruby regulamin
 wypadłby z kontekstu dokładnie wtedy, kiedy jest potrzebny.
@@ -143,11 +143,11 @@ Argument: ścieżka dokumentu.
 **Zasada nadrzędna:** podczas krytyki **dokument jest nietykalny**. Żaden model nic nie
 poprawia. Dyskusja produkuje propozycje, sędzia je rozstrzyga, człowiek wybiera.
 
-**Faza 1 — dyskusja** (max 3 rundy): GPT zgłasza konkretne zarzuty (luka, ryzyko,
+**Faza 1 — dyskusja** (max 3 rundy): Codex zgłasza konkretne zarzuty (luka, ryzyko,
 przerost, nieaktualne narzędzia), Claude jako autor przyznaje rację albo broni jednym
 zdaniem. Efekt: lista propozycji uzgodnionych + lista punktów spornych.
 
-**Faza 2 — sędzia:** *nowe* wywołanie GPT, bez historii dyskusji. Powód: autor dziedziczy
+**Faza 2 — sędzia:** *nowe* wywołanie Codexa, bez historii dyskusji. Powód: autor dziedziczy
 własną ramę, a sędzia, który przeczytał całą dyskusję, dziedziczy ją razem z nim. Sędzia
 dostaje dokument, obie listy, 2-3 pliki kontekstu i **źródła pierwotne = wyłącznie głos
 klienta**. Nasze maile do klienta i notatki nie są źródłem — to zapis naszych intencji,

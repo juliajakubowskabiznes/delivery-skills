@@ -126,7 +126,7 @@ brakuje.
 [`/hejt <dokument>`](../skills/hejt/SKILL.md) ma dwie fazy i jedną żelazną zasadę:
 **podczas krytyki dokument jest nietykalny**.
 
-1. **Dyskusja** (max 3 rundy): GPT zgłasza konkretne zarzuty, Claude jako autor albo
+1. **Dyskusja** (max 3 rundy): Codex zgłasza konkretne zarzuty, Claude jako autor albo
    przyznaje rację (→ propozycja), albo broni (→ punkt sporny). Efekt: dwie listy.
 2. **Sędzia** — *nowe* wywołanie, bez historii dyskusji. Dostaje dokument, listy, kontekst
    i **źródła pierwotne = wyłącznie głos klienta** (jego transkrypcje i wiadomości; nasze
@@ -198,9 +198,9 @@ kroków naraz:
 ## Faza 6 — Buduj
 
 [`/implement`](../skills/implement/SKILL.md) pracuje na ticketach z 5b, aż testy z 5c
-świecą na zielono, potem upraszcza. Wariant „buduje GPT" (przy dużych buildach albo
+świecą na zielono, potem upraszcza. Wariant „buduje Codex" (przy dużych buildach albo
 oszczędzaniu limitu) jest opisany w
-[`references/budowa.md`](../skills/workflow/references/budowa.md): GPT nie dotyka `.env`,
+[`references/budowa.md`](../skills/workflow/references/budowa.md): Codex nie dotyka `.env`,
 `CLAUDE.md` ani plików z sekretami, Claude nie pisze wtedy implementacji tylko recenzuje
 diff, maksymalnie 3 rundy poprawek i STOP.
 

@@ -107,6 +107,39 @@ ale mechanika jest domenowo obojętna.
 | 6 | **Buduj** | realizacja na ticketach, aż testy zielone, potem upraszczanie | działający krok | — |
 | 7 | **Sprawdź** | przegląd na dwóch osiach równolegle: standardy i zgodność ze specem | raport | — |
 
+```mermaid
+flowchart TD
+    S0["0 · SETUP<br/>CLAUDE.md projektu + tracker"]
+    S1["1 · POZNAJ<br/>fork czyta materiały → przesłuchanie<br/>luka po naszej stronie → ankieta"]
+    S2["2 · ZAPLANUJ POD WYCENĘ<br/>ryzyko · wykonalność dowiedziona<br/>podział na etapy"]
+    S3["3 · SKRYTYKUJ<br/>dyskusja Claude ↔ Codex<br/>→ sędzia w świeżym kontekście"]
+    S4["4 · ZAMROŹ ZAKRES<br/>kryteria odbioru = sprawdzalny test"]
+    S5["5 · DOMKNIJ I POTNIJ<br/>PRD → tickety → testy przed budową"]
+    S6["6 · BUDUJ<br/>na ticketach, aż testy zielone"]
+    S7["7 · SPRAWDŹ<br/>review: standardy i zgodność ze specem"]
+
+    G1{{"BRAMKA<br/>zrozumienie"}}
+    G2{{"BRAMKA<br/>plan"}}
+    G3{{"BRAMKA<br/>wybór zmian"}}
+    G4{{"BRAMKA<br/>akceptacja zakresu"}}
+    G5{{"BRAMKA<br/>tickety"}}
+
+    S0 --> S1 --> G1 --> S2 --> G2 --> S3 --> G3 --> S4 --> G4 --> S5 --> G5 --> S6 --> S7
+    S7 -.->|"kolejny etap"| S5
+    S7 --> END(["spec zamrożony → archiwum<br/>zmiana = nowy etap"])
+
+    classDef faza fill:#1e293b,stroke:#0f172a,color:#ffffff
+    classDef bramka fill:#f59e0b,stroke:#b45309,color:#1c1917
+    classDef koniec fill:#065f46,stroke:#064e3b,color:#ffffff
+    class S0,S1,S2,S3,S4,S5,S6,S7 faza
+    class G1,G2,G3,G4,G5 bramka
+    class END koniec
+```
+
+**Bramka nie jest checkpointem do odklikania** — to miejsce, w którym agent nie ma prawa
+kontynuować bez decyzji człowieka. Wszystko po lewej stronie bramki jest propozycją,
+wszystko po prawej — ustaleniem.
+
 **Głęboko przed wyceną, płytko przed budową.** Faza 2 dowodzi wykonalności — najlepiej
 testem na prawdziwych danych — ale nie schodzi do kontraktów danych i kolejności budowy.
 To robi PRD w fazie 5, po zamrożeniu zakresu. Rozdzielenie discovery od wykonania jest tu
@@ -169,6 +202,38 @@ dokumentów jest recenzją własną.
    (jego transkrypcje i wiadomości; nasze drafty źródłem nie są). Rozstrzyga każdy punkt,
    sprawdza zgodność planu z tym, co zamawiający faktycznie powiedział — z cytatem — i robi
    własny research aktualnych praktyk z linkami.
+
+```mermaid
+flowchart LR
+    DOC["dokument<br/>NIETYKALNY"]
+
+    subgraph F1["FAZA 1 · dyskusja (max 3 rundy)"]
+        direction TB
+        C1["Codex<br/>zgłasza zarzuty"] <--> A1["Claude<br/>przyznaje / broni"]
+    end
+
+    subgraph F2["FAZA 2 · sędzia"]
+        direction TB
+        J["Codex w ŚWIEŻYM wywołaniu<br/>bez historii dyskusji"]
+        SRC["+ źródła pierwotne<br/>= głos zamawiającego"]
+        SRC --> J
+    end
+
+    DOC --> F1
+    F1 -->|"propozycje + punkty sporne"| F2
+    F2 --> TAB["tabela dla człowieka<br/>+ werdykt"]
+    TAB --> DEC{{"człowiek wybiera,<br/>co wchodzi"}}
+    DEC -->|"tylko wybrane"| EDIT["naniesienie zmian"]
+
+    classDef doc fill:#334155,stroke:#1e293b,color:#ffffff
+    classDef codex fill:#0f766e,stroke:#134e4a,color:#ffffff
+    classDef claude fill:#7c3aed,stroke:#5b21b6,color:#ffffff
+    classDef out fill:#f59e0b,stroke:#b45309,color:#1c1917
+    class DOC,SRC,TAB doc
+    class C1,J codex
+    class A1,EDIT claude
+    class DEC out
+```
 
 Codex czyta pliki sam, w sandboksie read-only, więc dostaje ścieżki zamiast wklejek.
 Wariantowo przejmuje też budowę ([`references/budowa.md`](skills/workflow/references/budowa.md)):
@@ -256,12 +321,10 @@ można ujednolicić w obie strony.
 
 ## Pochodzenie i licencja
 
-Trzon inżynierski (13 skilli) pochodzi z [mattpocock/skills](https://github.com/mattpocock/skills)
-(MIT): `wayfinder`, `grilling`, `grill-with-docs`, `to-spec`, `to-tickets`,
-`to-questionnaire`, `tdd`, `implement`, `code-review`, `codebase-design`,
-`domain-modeling`, `improve-codebase-architecture`, `setup-matt-pocock-skills`.
-
-Napisane pod ten workflow: `workflow`, `init-klienta`, `analiza`, `hejt`, `zalacznik`.
-Zakres modyfikacji skilli bazowych opisuje sekcja [Baza i warstwa własna](#baza-i-warstwa-własna).
+Skille inżynierskie wyrosły z open-source'owego zestawu
+[mattpocock/skills](https://github.com/mattpocock/skills) (MIT) i zostały zmodyfikowane —
+zakres zmian opisuje sekcja [Baza i warstwa własna](#baza-i-warstwa-własna).
+Warstwa procesowa (`workflow`, `analiza`, `hejt`, `zalacznik`, `init-klienta`) powstała
+pod ten workflow.
 
 Licencja: MIT (patrz [`LICENSE`](LICENSE)).

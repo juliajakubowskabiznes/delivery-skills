@@ -1,5 +1,14 @@
 # Delivery Skills — workflow projektowy dla Claude Code
 
+[![Workflow: 7 faz z bramkami decyzyjnymi i niezależną recenzją drugiego agenta](docs/assets/workflow-hero.png)](https://juliajakubowskabiznes.github.io/delivery-skills/docs/diagrams/workflow.html?theme=dark&present=1)
+
+<p align="center">
+  <a href="https://juliajakubowskabiznes.github.io/delivery-skills/docs/diagrams/workflow.html?theme=dark&present=1"><b>Otwórz interaktywną wersję ↗</b></a> ·
+  <a href="https://juliajakubowskabiznes.github.io/delivery-skills/docs/diagrams/workflow.html?theme=dark&present=1#view=petla-krytyki">pętla krytyki</a> ·
+  <a href="https://juliajakubowskabiznes.github.io/delivery-skills/docs/diagrams/workflow.html?theme=dark&present=1#view=bramki">bramki decyzyjne</a> ·
+  <a href="docs/diagrams/workflow.json">źródło diagramu</a>
+</p>
+
 **18 skilli dla Claude Code**, które biorą sprawdzony proces inżynierii oprogramowania —
 spec-driven development, ADR-y, ubiquitous language, tracer bullets, TDD, dwuosiowy code
 review — i dokładają do niego warstwę, której w oryginale nie ma: **weryfikację przez
@@ -135,6 +144,11 @@ flowchart TD
     class G1,G2,G3,G4,G5 bramka
     class END koniec
 ```
+
+<sub>Diagram powyżej to wersja tekstowa (mermaid), edytowalna w diffie. Wersja
+interaktywna — z prowadzonymi widokami i trybem prezentacji — jest
+[tutaj](https://juliajakubowskabiznes.github.io/delivery-skills/docs/diagrams/workflow.html?theme=dark&present=1),
+a jej typowane źródło leży w [`docs/diagrams/workflow.json`](docs/diagrams/workflow.json).</sub>
 
 **Bramka nie jest checkpointem do odklikania** — to miejsce, w którym agent nie ma prawa
 kontynuować bez decyzji człowieka. Wszystko po lewej stronie bramki jest propozycją,
@@ -326,5 +340,8 @@ Skille inżynierskie wyrosły z open-source'owego zestawu
 zakres zmian opisuje sekcja [Baza i warstwa własna](#baza-i-warstwa-własna).
 Warstwa procesowa (`workflow`, `analiza`, `hejt`, `zalacznik`, `init-klienta`) powstała
 pod ten workflow.
+
+Interaktywny diagram wyrenderowany przez [Archify](https://github.com/tt-a1i/archify) (MIT)
+z typowanego źródła w [`docs/diagrams/workflow.json`](docs/diagrams/workflow.json).
 
 Licencja: MIT (patrz [`LICENSE`](LICENSE)).

@@ -1,9 +1,9 @@
 # Delivery Skills — workflow projektowy dla Claude Code
 
-**18 skilli**, które zmieniają Claude Code z narzędzia „napisz mi kod" w agenta
-prowadzącego projekt od pierwszej rozmowy z klientem do odbioru gotowego systemu —
-z bramkami decyzyjnymi, niezależną recenzją drugiego modelu i twardymi hamulcami
-na zgadywanie.
+**18 skilli dla Claude Code**, które biorą sprawdzony proces inżynierii oprogramowania —
+spec-driven development, ADR-y, ubiquitous language, tracer bullets, TDD, dwuosiowy code
+review — i dokładają do niego warstwę, której w oryginale nie ma: **weryfikację przez
+drugiego agenta**, bramki decyzyjne i mechaniczne hamulce na zgadywanie.
 
 **Stack:** Claude Code (skille + hooki + sub-agenty) · plugin
 [Codex](https://github.com/openai/codex-plugin-cc) jako niezależny recenzent ·
@@ -11,24 +11,52 @@ issue tracker do wyboru (GitHub / GitLab / lokalny markdown).
 
 ---
 
-## Problem, który to rozwiązuje
+## Teza
 
-Agent kodujący jest szybki i chętny — i to jest problem. Postawiony przed projektem,
-w którym połowa informacji jeszcze nie istnieje, będzie:
+Dobre praktyki inżynierskie są opisane od dawna i działają. Problem w tym, że **agent
+kodujący łamie je szybciej, niż człowiek zdąży zauważyć** — i łamie je w sposób, którego
+nie widać w wyniku:
 
-- **wypełniał luki hipotezami**, które w dokumencie wyglądają identycznie jak fakty,
-- **poprawiał zatwierdzone dokumenty** „bo tak będzie lepiej", unieważniając zgodę,
-  która za nimi stała,
-- **budował, zanim ktokolwiek ustalił**, po czym pozna się, że zbudowane jest dobrze,
-- **recenzował własną pracę** z tą samą ramą myślenia, w której ją napisał.
+- wypełnia luki hipotezami, które w dokumencie wyglądają identycznie jak fakty,
+- poprawia zatwierdzone dokumenty „bo tak będzie lepiej", unieważniając zgodę, która za
+  nimi stała,
+- buduje, zanim ktokolwiek ustalił kryterium, po którym pozna się, że zbudowane jest dobrze,
+- **recenzuje własną pracę tą samą ramą, w której ją napisał** — i wystawia sobie zaliczenie.
 
-To repo to zestaw ograniczeń, które temu zapobiegają — i przykład tego, jak projektować
-skille, żeby reguła przeżyła długą sesję zamiast utonąć w kontekście.
+Sam proces tego nie zatrzyma, bo proces jest tekstem, a tekst w prompcie tonie w długiej
+sesji. Zatrzymują to mechanizmy: świeży kontekst, drugi model, hook i bramka. To repo jest
+zapisem takiego złożenia — i przykładem tego, jak projektować skille, żeby reguła przeżyła
+sesję zamiast utonąć w niej wraz z resztą instrukcji.
+
+## Baza i warstwa własna
+
+**Baza** to open-source'owy zestaw [mattpocock/skills](https://github.com/mattpocock/skills)
+(MIT) — uznane praktyki w formie skilli: spec z kryteriami akceptacji, cięcie na wertykalne
+plasterki, glosariusz domenowy i ADR-y, TDD przy ustalonych szwach, przegląd kodu na osi
+standardów i osi zgodności ze specem.
+
+**Warstwa dołożona** odpowiada na to, czego baza nie adresuje — bo pisana była dla człowieka
+prowadzącego agenta, nie dla agenta prowadzącego cały projekt:
+
+| Co dołożone | Na co odpowiada | Gdzie |
+|---|---|---|
+| **Recenzja drugim agentem** — dyskusja Claude↔Codex, potem sędzia w świeżym wywołaniu | autor nie umie ocenić własnej ramy; recenzent, który zna debatę, dziedziczy ją razem z autorem | [`/hejt`](skills/hejt/SKILL.md) |
+| **Fork kontekstu do czytania materiałów** | sesja, która już w coś uwierzyła, czyta materiały pod tę tezę | [`/analiza`](skills/analiza/SKILL.md) |
+| **Bramki decyzyjne po każdej fazie** | model nie zna granicy między „poprawiłem drobiazg" a „zmieniłem ustalenie" | [`/workflow`](skills/workflow/SKILL.md) |
+| **Hook jako twarda pamięć** | instrukcja w prompcie przestaje działać dokładnie wtedy, gdy sesja jest długa | [`/init-klienta`](skills/init-klienta/SKILL.md) |
+| **Zero założeń z jawnym właścicielem pytania** | luka wpisana po cichu jest nieodróżnialna od ustalenia | [`/to-spec`](skills/to-spec/SKILL.md), [`/to-tickets`](skills/to-tickets/SKILL.md) |
+| **Rozdzielenie fazy discovery od fazy wykonawczej** | pisanie pełnej specyfikacji, zanim wiadomo, czy rzecz jest wykonalna i opłacalna | [`/workflow`](skills/workflow/SKILL.md) faza 2 vs 5 |
+| **Ankieta do interesariusza zamiast domysłu** | wiedza, której nie ma po naszej stronie, nie powstanie przez dłuższe myślenie | [`/to-questionnaire`](skills/to-questionnaire/SKILL.md) |
+
+Skille bazowe też zostały zmodyfikowane — `to-spec`, `to-tickets` i `to-questionnaire`
+dostały polskie sekcje, regułę zera założeń, routing pytań do interesariusza i drabinkę
+cel → metryka → kryterium odbioru.
 
 ## Spis treści
 
-- [Zrozum w 2 minuty](#zrozum-w-2-minuty)
-- [Mechanizmy — co tu jest ciekawego inżyniersko](#mechanizmy--co-tu-jest-ciekawego-inżyniersko)
+- [Teza](#teza)
+- [Baza i warstwa własna](#baza-i-warstwa-własna)
+- [Jak to jest zrobione pod spodem](#jak-to-jest-zrobione-pod-spodem)
 - [Workflow — 7 faz](#workflow--7-faz)
 - [Katalog skilli](#katalog-skilli)
 - [Rola pluginu Codex](#rola-pluginu-codex)
@@ -39,63 +67,54 @@ skille, żeby reguła przeżyła długą sesję zamiast utonąć w kontekście.
 - [Pochodzenie i licencja](#pochodzenie-i-licencja)
 
 Głębsze opisy: [`docs/`](docs/) — [workflow](docs/01-workflow.md) ·
-[skille wdrożeniowe](docs/02-skille-wdrozeniowe.md) ·
+[skille procesowe](docs/02-skille-wdrozeniowe.md) ·
 [skille inżynierskie](docs/03-skille-inzynierskie.md) ·
 [struktura folderów](docs/04-struktura-folderow.md) ·
 [instalacja i konfiguracja](docs/05-instalacja-i-konfiguracja.md)
 
----
+## Jak to jest zrobione pod spodem
 
-## Zrozum w 2 minuty
+Implementacja tego, co wyżej opisane funkcjonalnie — konkrety, które decydują o tym, czy
+reguła zadziała, czy tylko ładnie brzmi:
 
-Trzy zasady przewijają się przez wszystkie 18 skilli:
-
-1. **Bramki 🚧** — po każdej fazie agent zatrzymuje się i czeka na decyzję człowieka.
-   Nie „przygotowuje już kolejnego kroku, skoro i tak trzeba będzie".
-2. **Zero założeń** — luka w wiedzy jest *pytaniem* (do człowieka albo do klienta),
-   nigdy cicho wpisaną hipotezą. Brak informacji ma być widoczny w dokumencie.
-3. **Bramka naniesień** — krytyka i research produkują *propozycje*, nie zmiany.
-   Zatwierdzony dokument zmienia się dopiero po wyborze z tabeli ZA/PRZECIW.
-
-Plus jeden nawyk, który zmienia ekonomię projektu: **głęboko przed wyceną, płytko przed
-budową**. Przed ofertą sprawdzasz wykonalność — najlepiej dowodem na prawdziwych danych.
-Szczegóły wykonawcze powstają dopiero po podpisaniu umowy, bo to płatna część pracy.
-
-Domena, na której to powstało, to projekty wdrożeniowe u klientów (automatyzacje,
-integracje, systemy szyte na miarę) — ale mechanika jest domenowo obojętna. Każdy projekt,
-w którym trzeba **najpierw ustalić, potem wycenić, potem zbudować**, mieści się w tym
-samym szkielecie.
-
-## Mechanizmy — co tu jest ciekawego inżyniersko
-
-| Mechanizm | Gdzie | Po co |
-|---|---|---|
-| **Fork kontekstu** (`context: fork`) | [`/analiza`](skills/analiza/SKILL.md) | agent czyta materiały **bez historii rozmowy**, więc nie dziedziczy tego, w co bieżąca sesja zdążyła uwierzyć — ocenia to, co realnie jest na dysku |
-| **Recenzent bez wspólnej ramy** | [`/hejt`](skills/hejt/SKILL.md) | dyskusja Claude↔Codex, a potem **świeże wywołanie sędziego bez historii dyskusji** — sędzia, który przeczytał całą debatę, dziedziczy ramę autora i przestaje być niezależny |
-| **Hook jako twarda pamięć** | [`/init-klienta`](skills/init-klienta/SKILL.md) | `PostToolUse` na `Write\|Edit` wychodzi z kodem 2 przy zapisie do spec/PRD/CLAUDE.md. Instrukcja w prompcie tonie po godzinie sesji — hook odpala się mechanicznie, niezależnie od tego, co sesja pamięta |
-| **Sub-agenty równoległe** | [`/code-review`](skills/code-review/SKILL.md), research, `design-it-twice` | dwie osie przeglądu w osobnych kontekstach, żeby się nie zanieczyszczały; jeden agent na pytanie badawcze; 3+ wariantów interfejsu naraz |
-| **Rozdzielenie warstw dokumentu** | [`references/plan.md`](skills/workflow/references/plan.md) | test na każdy fragment: „czy obowiązuje też przy innym projekcie?" → jeśli tak, to nie należy do tego dokumentu (reguła→skill, fakt→CONTEXT.md, decyzja→ADR) |
-| **Tracker jako abstrakcja** | [`/setup-matt-pocock-skills`](skills/setup-matt-pocock-skills/SKILL.md) | skille czytają `docs/agents/issue-tracker.md`, zamiast zakładać platformę — ta sama instrukcja działa na GitHubie, GitLabie i plikach markdown |
-| **EARS jako kontrakt testowy** | [`/to-spec`](skills/to-spec/SKILL.md) | kryteria pisane wzorcami (`GDY <zdarzenie>, system MUSI X`) konwertują się 1:1 na testy. Twarda reguła: każdy krok czytający dane przez AI musi mieć kryterium „co, gdy odczyt zawiedzie" |
-| **Progresywne ładowanie reguł** | [`skills/workflow/`](skills/workflow/) | krótki kręgosłup w `SKILL.md`, szczegóły w `references/` doczytywane przy wejściu w fazę — gruby regulamin wypadłby z kontekstu dokładnie wtedy, kiedy jest potrzebny |
+| Mechanizm | Implementacja |
+|---|---|
+| **Fork kontekstu** | frontmatter `context: fork` w [`/analiza`](skills/analiza/SKILL.md) — skill wykonuje się bez historii rozmowy, więc czyta materiały bez tezy, którą sesja zdążyła przyjąć. Raport ląduje w pliku, nie tylko w rozmowie: przeżywa restart sesji |
+| **Sędzia bez wspólnej ramy** | druga faza [`/hejt`](skills/hejt/SKILL.md) to *nowe* wywołanie Codexa, które dostaje dokument, listę sporów i ścieżki do źródeł — nigdy historii dyskusji. Ciężkie wywołania w `--background`, bo kilkuminutowe rozumowanie nie mieści się w timeoucie Bash |
+| **Hook jako twarda pamięć** | `PostToolUse` na `Write\|Edit` w `.claude/settings.json` projektu; przy zapisie do spec/PRD/CLAUDE.md wychodzi z **kodem 2**, więc agent musi się zatrzymać i pokazać propozycję. Działa niezależnie od tego, ile sesja pamięta |
+| **Sub-agenty równoległe** | [`/code-review`](skills/code-review/SKILL.md) uruchamia dwie osie w osobnych kontekstach i **nie scala raportów**; research odpala jednego agenta na pytanie badawcze (min. 2 źródła z linkami); `design-it-twice` — 3+ wariantów interfejsu naraz |
+| **Tracker jako abstrakcja** | skille czytają `docs/agents/issue-tracker.md` zamiast zakładać platformę — ta sama instrukcja działa na GitHubie (`gh`), GitLabie (`glab`) i na plikach markdown w `.scratch/` |
+| **EARS jako kontrakt testowy** | kryteria pisane wzorcami (`GDY <zdarzenie>, system MUSI X`) konwertują się 1:1 na testy. Twarda reguła: każdy krok czytający dane przez AI musi mieć kryterium typu „JEŚLI odczyt zawiedzie" — cicha zła odpowiedź to najgorsza klasa awarii |
+| **Progresywne ładowanie reguł** | krótki kręgosłup w `SKILL.md`, szczegóły w [`references/`](skills/workflow/references/) doczytywane przy wejściu w fazę. Regulamin wpakowany do jednego pliku wypada z kontekstu dokładnie wtedy, gdy jest potrzebny |
 
 ## Workflow — 7 faz
 
 Stała kolejność, bramka po każdej fazie. Agent melduje pozycję: `[WORKFLOW faza N/7 — NAZWA]`.
 
+**Słownik:** *zamawiający* to strona, która zamawia i odbiera — klient zewnętrzny, dział
+biznesowy albo product owner. *Etap* to porcja pracy, którą da się odebrać osobno.
+Nazwy skilli zostały z domeny, w której to powstało (projekty wdrożeniowe u klientów),
+ale mechanika jest domenowo obojętna.
+
 | # | Faza | Co się dzieje | Efekt | Bramka |
 |---|---|---|---|---|
 | 0 | **Setup** | raz na projekt: CLAUDE.md projektu + tracker zadań | pamięć projektu | — |
-| 1 | **Poznaj** | fork czyta wszystkie materiały, potem przesłuchanie człowieka; czego nie wie nikt po naszej stronie → ankieta do klienta | raport + decyzje + pytania | 🚧 potwierdzenie zrozumienia |
-| 2 | **Zaplanuj pod wycenę** | ryzyko, wykonalność **dowiedziona na realnych danych**, podział na kroki, które da się osobno sprzedać i odebrać | plan całości | 🚧 zatwierdzenie planu |
+| 1 | **Poznaj** | fork czyta wszystkie materiały, potem przesłuchanie człowieka; czego nie wie nikt po naszej stronie → ankieta do zamawiającego | raport + decyzje + pytania | 🚧 potwierdzenie zrozumienia |
+| 2 | **Zaplanuj pod wycenę** | ryzyko, wykonalność **dowiedziona na realnych danych**, podział na etapy, które da się odebrać osobno | plan całości | 🚧 zatwierdzenie planu |
 | 3 | **Skrytykuj** | dyskusja dwóch modeli → świeży sędzia rozstrzyga spory i robi własny research | tabela propozycji + werdykt | 🚧 wybór zmian |
-| 4 | **Umowa** | zakres językiem klienta, kryteria odbioru = sprawdzalny test | podpis + płatność z góry | 🚧 akceptacja przed wysyłką |
-| 5 | **Domknij i potnij** | *dopiero po wpłacie*: PRD, cięcie na zadania z zależnościami, **testy przed budową** | PRD + tickety + testy | 🚧 zatwierdzenie ticketów |
+| 4 | **Zamroź zakres** | zakres językiem zamawiającego, kryteria odbioru = sprawdzalny test (w wariancie komercyjnym: umowa + załącznik) | uzgodniony zakres | 🚧 akceptacja przed wysyłką |
+| 5 | **Domknij i potnij** | *dopiero po zamrożeniu zakresu*: PRD, cięcie na zadania z zależnościami, **testy przed budową** | PRD + tickety + testy | 🚧 zatwierdzenie ticketów |
 | 6 | **Buduj** | realizacja na ticketach, aż testy zielone, potem upraszczanie | działający krok | — |
 | 7 | **Sprawdź** | przegląd na dwóch osiach równolegle: standardy i zgodność ze specem | raport | — |
 
+**Głęboko przed wyceną, płytko przed budową.** Faza 2 dowodzi wykonalności — najlepiej
+testem na prawdziwych danych — ale nie schodzi do kontraktów danych i kolejności budowy.
+To robi PRD w fazie 5, po zamrożeniu zakresu. Rozdzielenie discovery od wykonania jest tu
+regułą procesu, nie kwestią stylu: specyfikacja napisana przed dowodem wykonalności bywa
+specyfikacją rzeczy, której nie da się zbudować.
+
 Po odbiorze spec idzie do archiwum jako **zamrożony zapis ustaleń** — nie aktualizuje się
-go, gdy system się zmienia. Zmiana = nowy krok.
+go, gdy system się zmienia. Zmiana = nowy etap.
 
 **Test wagi:** drobiazg bez nowych decyzji architektonicznych omija całą ścieżkę — od razu
 budowa, test, przegląd. Wielki spec do 20-minutowej roboty to strata, nie staranność.
@@ -114,7 +133,7 @@ szczegóły: [`docs/02-skille-wdrozeniowe.md`](docs/02-skille-wdrozeniowe.md)
 | [`/analiza`](skills/analiza/SKILL.md) | 1 | fork czyta cały folder projektu → raport: co wiemy, sprzeczności, luki |
 | [`/to-questionnaire`](skills/to-questionnaire/SKILL.md) | 1, 5 | zamienia „tego nie wiemy" w jedną ankietę async, bez spotkania |
 | [`/hejt`](skills/hejt/SKILL.md) | 3 | krytyka: dyskusja Claude↔Codex → świeży sędzia → tabela propozycji |
-| [`/zalacznik`](skills/zalacznik/SKILL.md) | 4 | zakres do umowy, językiem klienta, z kryteriami odbioru, które da się sprawdzić |
+| [`/zalacznik`](skills/zalacznik/SKILL.md) | 4 | zakres do zamrożenia, językiem zamawiającego, z kryteriami odbioru, które da się sprawdzić |
 | [`/to-spec`](skills/to-spec/SKILL.md) | 2, 5 | zamienia rozmowę w PRD z kryteriami EARS (każde = 1 test) |
 | [`/to-tickets`](skills/to-tickets/SKILL.md) | 5 | tnie PRD na zadania „tracer bullet" z jawnymi zależnościami |
 
@@ -146,9 +165,9 @@ dokumentów jest recenzją własną.
    przerost, nieaktualne narzędzie. Claude jako autor albo przyznaje rację (→ propozycja
    zmiany), albo broni jednym zdaniem (→ punkt sporny).
 2. **Sędzia** (nowe wywołanie, **bez historii dyskusji**) — dostaje wyłącznie dokument,
-   listy propozycji i sporów, kontekst projektu i **źródła pierwotne = głos klienta**
+   listy propozycji i sporów, kontekst projektu i **źródła pierwotne = głos zamawiającego**
    (jego transkrypcje i wiadomości; nasze drafty źródłem nie są). Rozstrzyga każdy punkt,
-   sprawdza zgodność planu z tym, co klient faktycznie powiedział — z cytatem — i robi
+   sprawdza zgodność planu z tym, co zamawiający faktycznie powiedział — z cytatem — i robi
    własny research aktualnych praktyk z linkami.
 
 Codex czyta pliki sam, w sandboksie read-only, więc dostaje ścieżki zamiast wklejek.
@@ -174,9 +193,6 @@ której plugin nie sprząta (zdejmuje ją `codex-companion.mjs cancel`).
 
 Rzeczy, które okazały się ważniejsze od treści samych instrukcji:
 
-- **Krótki kręgosłup, szczegóły w referencjach.** `SKILL.md` trzyma kolejność i bramki;
-  reguły fazy leżą w `references/*.md` i są doczytywane przy wejściu w fazę. Regulamin
-  wpakowany do jednego pliku wypada z kontekstu w długiej sesji.
 - **Reguła, która musi zadziałać, nie może być zdaniem w prompcie.** Stąd hook: mechaniczny,
   odpalany przy każdym zapisie, obojętny na to, ile sesja pamięta.
 - **Świeży kontekst jako narzędzie.** Fork do czytania materiałów, świeże wywołanie do
@@ -202,7 +218,7 @@ cp -R skills/* /ścieżka/do/projektu/.claude/skills/
 #    /plugin install codex@openai-codex
 
 # 3. W Claude Code, w folderze projektu:
-#    /init-klienta <ścieżka do folderu projektu>
+#    /init-klienta <ścieżka do folderu projektu>   # zakłada CLAUDE.md + hook
 #    /workflow
 ```
 
@@ -234,20 +250,18 @@ Pełny wzorzec, z anatomią folderu faza po fazie: [`docs/04-struktura-folderow.
 | `skills/init-klienta` | szablon CLAUDE.md i treść hooka |
 | `skills/setup-matt-pocock-skills` | tracker i etykiety triage |
 
-Skille procesowe są po polsku (produkują dokumenty dla polskich klientów), inżynierskie
-po angielsku. Instrukcja dla modelu nie musi być w języku dokumentu, który powstaje —
+Skille procesowe są po polsku (produkują dokumenty dla polskiego zamawiającego),
+inżynierskie po angielsku. Instrukcja dla modelu nie musi być w języku dokumentu, który powstaje —
 można ujednolicić w obie strony.
 
 ## Pochodzenie i licencja
 
-Skille inżynierskie pochodzą z open-source'owego zestawu
-[mattpocock/skills](https://github.com/mattpocock/skills) (MIT) — `wayfinder`, `grilling`,
-`grill-with-docs`, `to-spec`, `to-tickets`, `to-questionnaire`, `tdd`, `implement`,
-`code-review`, `codebase-design`, `domain-modeling`, `improve-codebase-architecture`,
-`setup-matt-pocock-skills`. Zmodyfikowane zostały głównie `to-spec`, `to-tickets`
-i `to-questionnaire`: doszły polskie sekcje, zasada zera założeń, routing pytań do klienta
-i drabinka cel → metryka → kryterium odbioru.
+Trzon inżynierski (13 skilli) pochodzi z [mattpocock/skills](https://github.com/mattpocock/skills)
+(MIT): `wayfinder`, `grilling`, `grill-with-docs`, `to-spec`, `to-tickets`,
+`to-questionnaire`, `tdd`, `implement`, `code-review`, `codebase-design`,
+`domain-modeling`, `improve-codebase-architecture`, `setup-matt-pocock-skills`.
 
-Skille `workflow`, `init-klienta`, `analiza`, `hejt` i `zalacznik` powstały pod ten proces.
+Napisane pod ten workflow: `workflow`, `init-klienta`, `analiza`, `hejt`, `zalacznik`.
+Zakres modyfikacji skilli bazowych opisuje sekcja [Baza i warstwa własna](#baza-i-warstwa-własna).
 
 Licencja: MIT (patrz [`LICENSE`](LICENSE)).

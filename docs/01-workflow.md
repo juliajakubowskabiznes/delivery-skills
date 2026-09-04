@@ -6,6 +6,13 @@ powstaje na każdym etapie. Sama instrukcja wykonawcza dla agenta żyje w
 [`skills/workflow/references/`](../skills/workflow/references/) — tu jest komentarz do
 niej, nie jej kopia.
 
+**Słownik.** *Zamawiający* to strona, która zamawia i odbiera — klient zewnętrzny, dział
+biznesowy albo product owner. *Użytkownik* to osoba prowadząca projekt po naszej stronie.
+*Etap* to porcja pracy, którą da się odebrać osobno. Domena, w której to powstało, to
+projekty wdrożeniowe u klientów zewnętrznych, więc faza 4 mówi o umowie i płatności —
+w wariancie wewnętrznym jest to po prostu **zamrożenie zakresu przed budową**, a bramka
+działa tak samo.
+
 ## Trzy reguły, które obowiązują we wszystkich fazach
 
 **1. Bramka 🚧 = koniec fazy.** Agent zatrzymuje się i czeka. Nie „przygotowuje już
@@ -148,9 +155,9 @@ wyborze użytkownika.
 **Bramka:** użytkownik wybiera zmiany. Potem agent przechodzi z nim przez finalny
 dokument sekcja po sekcji i domyka otwarte `[DO DOPYTANIA]`.
 
-## Faza 4 — Umowa 🚧
+## Faza 4 — Zamroź zakres 🚧 (w wariancie komercyjnym: umowa)
 
-**Po co:** żeby to, co podpisane, dało się odebrać bez sporu.
+**Po co:** żeby to, co uzgodnione, dało się odebrać bez sporu.
 
 [`/zalacznik <PRD>`](../skills/zalacznik/SKILL.md) tłumaczy zatwierdzony PRD na język
 klienta — 7 sekcji, zero żargonu, zero cen (ceny żyją w umowie). Wysyłany razem z umową,
@@ -171,9 +178,10 @@ Dwie reguły, które robią całą różnicę przy odbiorze:
 
 **Bramka:** użytkownik akceptuje przed wysyłką. Płatność z góry **przed** dalszą robotą.
 
-## Faza 5 — Domknij i potnij 🚧 (po podpisie i wpłacie)
+## Faza 5 — Domknij i potnij 🚧 (po zamrożeniu zakresu)
 
-**Po co:** bo szczegółowe planowanie to płatna część pracy, nie prezent do oferty.
+**Po co:** bo szczegółowe planowanie ma sens dopiero wtedy, gdy wiadomo, że budujemy —
+w wariancie komercyjnym jest to wprost płatna część pracy, nie prezent do oferty.
 
 W dużym systemie faza 5 dzieje się **per krok wdrożenia**, nie hurtem dla wszystkich
 kroków naraz:
